@@ -4,11 +4,11 @@
     <meta charset="UTF-8">
     <!-- 关键：设置视口以支持移动设备和旋转 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>人数统计 (✨ AI版)</title>
+    <title>人流量检测 (✨ AI版)</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
-    <!-- ✨ 新增：引入 Chart.js 库 -->
+    <!-- ✨ 引入 Chart.js 库 -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     
     <style>
@@ -40,11 +40,6 @@
             left: 0;
             width: 100%;
             height: 100%;
-            /* 注意: 我们没有使用 'object-fit: cover'，
-               而是让视频被拉伸以填满屏幕。
-               这样可以保证画布坐标和视频坐标
-               100% 匹配，即使比例失调。
-            */
         }
 
         video {
@@ -76,6 +71,7 @@
             padding: 5px 10px;
             border-radius: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            transition: opacity 0.3s ease; /* ✨ 增加过渡效果 */
         }
 
         /* 小方框内的元素样式 */
@@ -86,7 +82,6 @@
 
         #count {
             margin: 0;
-            /* ✨ 字体改小 */
             font-size: 1.2em; 
             font-weight: bold;
             color: #00FFFF; /* 亮青色，匹配方框 */
@@ -103,11 +98,11 @@
             flex-direction: row; /* 水平排列 */
             gap: 10px; /* 按钮间距 */
             align-items: center; /* ✨ 垂直居中对齐 */
+            transition: opacity 0.3s ease; /* ✨ 增加过渡效果 */
         }
 
         /* 按钮通用样式 */
         .info-button {
-            /* ✨ 移除 margin-top, 宽度自适应 */
             padding: 8px 12px; 
             font-size: 0.9em;
             font-weight: bold;
@@ -115,11 +110,11 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s;
+            transition: background-color 0.3s, opacity 0.3s ease; /* ✨ 增加过渡效果 */
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
-        /* ✨ "生成图表" 按钮样式 (原 "生成报告") */
+        /* "生成图表" 按钮样式 */
         #reportButton {
             background-color: #f44336; /* 红色 */
         }
@@ -143,9 +138,6 @@
             background-color: #0056b3;
         }
         
-        /* --- ✨ 移除主界面的下拉框样式 --- */
-        /* #intervalSelect {...} 已删除 */
-
         
         /* --- ✨ 模态框 (Modal) 样式修改 --- */
         
@@ -245,6 +237,40 @@
         }
         /* --- 结束：模态框样式 --- */
 
+        /* ✨ 新增：右上角控制容器 */
+        #top-right-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column; /* 垂直排列 */
+            gap: 10px; /* 按钮间距 */
+            align-items: flex-end; /* 右对齐 */
+        }
+
+        /* ✨ 修改：全屏按钮样式 (移除定位) */
+        #fullscreenButton {
+            background-color: #607D8B; /* 灰色 */
+        }
+        #fullscreenButton:hover {
+            background-color: #455A64;
+        }
+
+        /* ✨ 新增：锁定按钮样式 */
+        #lockButton {
+            background-color: #4CAF50; /* 绿色 */
+        }
+        #lockButton:hover {
+            background-color: #45a049;
+        }
+        
+        /* ✨ 新增：用于隐藏控件的类 */
+        .controls-hidden {
+            opacity: 0;
+            pointer-events: none; /* 隐藏时不可点击 */
+        }
+
     </style>
 </head>
 <body>
@@ -261,20 +287,23 @@
         <h2 id="count">累计人数: 0</h2>
     </div>
 
-    <!-- 关键：右下角控制框 (下拉框已移除) -->
+    <!-- 关键：右下角控制框 -->
     <div id="controls-overlay">
-        <button id="reportButton" class="info-button">✨ 生成图表</button>
-        <button id="flipButton" class="info-button">🔄 翻转镜头</button>
-        <button id="resetButton" class="info-button">重置计数</button>
+        <button id="reportButton" class="info-button">✨生成图表</button>
+        <button id="flipButton" class="info-button">🔄翻转镜头</button>
+        <button id="resetButton" class="info-button">🆕重置计数</button>
     </div>
 
-    <!-- ✨ 模态框 (Modal) - 内容已修改 -->
+    <!-- ✨ 新增：右上角控制框 (包含全屏和锁定) -->
+    <div id="top-right-controls">
+        <button id="fullscreenButton" class="info-button">🖥️全屏</button>
+        <button id="lockButton" class="info-button">🔒锁定</button>
+    </div>
+
+    <!-- ✨ 模态框 (Modal) -->
     <div id="modal-overlay" class="modal-hidden"></div>
     <div id="gemini-modal" class="modal-hidden">
-        <!-- ✨ 标题已修改为动态 -->
         <h3 id="chart-modal-title">人流图表</h3>
-        
-        <!-- ✨ 新增：模态框内部的间隔选择器 -->
         <div id="chart-controls">
             <label for="chartIntervalSelect">选择间隔:</label>
             <select id="chartIntervalSelect">
@@ -285,7 +314,6 @@
                 <option value="3600000">每小时</option>
             </select>
         </div>
-        
         <div id="chart-container">
             <canvas id="chart-canvas"></canvas>
             <p id="chart-no-data" class="modal-hidden">暂无数据，请至少等待一个周期后再试。</p>
@@ -302,44 +330,54 @@
         const loadingMessage = document.getElementById('loading-message');
         const resetButton = document.getElementById('resetButton'); 
 
-        // ✨ 按钮
+        // 按钮
         const reportButton = document.getElementById('reportButton');
         
-        // ✨ Modal 元素
+        // Modal 元素
         const modalOverlay = document.getElementById('modal-overlay');
         const geminiModal = document.getElementById('gemini-modal');
         const closeModalButton = document.getElementById('close-modal-button');
-        const chartIntervalSelect = document.getElementById('chartIntervalSelect'); // ✨ 模态框内的下拉框
+        const chartIntervalSelect = document.getElementById('chartIntervalSelect');
         
-        // ✨ 翻转按钮
+        // 翻转按钮
         const flipButton = document.getElementById('flipButton');
-        // ✨ intervalSelect 已从这里移除
+        
+        // 全屏按钮
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        
+        // ✨ 新增：锁定按钮和需要隐藏的元素
+        const lockButton = document.getElementById('lockButton');
+        const countOverlay = document.getElementById('count-overlay');
+        const controlsOverlay = document.getElementById('controls-overlay');
 
         let model = null; 
         let detectionTimeoutId = null; 
         const DETECTION_INTERVAL = 100; // 100毫秒 = 10 FPS
 
         // --- 跟踪器变量 ---
-        let cumulativeCount = 0;    
-        let nextPersonId = 1;       
+        let cumulativeCount = 0; 
+        let nextPersonId = 1; 
         let trackedPeople = []; 
         let sessionStartTime = null; 
         
-        // --- ✨ 摄像头状态变量 ---
+        // --- 摄像头状态变量 ---
         let currentFacingMode = 'environment'; // 默认使用后置
         let currentStream = null; // 存储当前的视频流
 
         const RELATIVE_MATCH_THRESHOLD = 0.8; 
         const MAX_FRAMES_UNSEEN = 100; // 100 帧 (10 秒)
         
-        // --- ✨ 图表数据相关变量 ---
-        const BASE_LOG_INTERVAL = 60000; // ✨ 关键：数据记录基础间隔 (1 分钟)
+        // --- 图表数据相关变量 ---
+        const BASE_LOG_INTERVAL = 60000; // 关键：数据记录基础间隔 (1 分钟)
         let flowData = []; // 存储 { timestamp: Date, flow: int }
         let lastLoggedCount = 0;
         let dataLoggerInterval = null;
         let chartInstance = null; // 存储 Chart.js 实例
+        
+        // ✨ 新增：锁定状态
+        let isLocked = false;
 
-        // --- ✨ Modal 控制函数 (不变) ---
+        // --- Modal 控制函数 (不变) ---
         function showModal() {
             modalOverlay.classList.remove('modal-hidden');
             geminiModal.classList.remove('modal-hidden');
@@ -348,14 +386,70 @@
         function hideModal() {
             modalOverlay.classList.add('modal-hidden');
             geminiModal.classList.add('modal-hidden'); 
-            // 销毁图表实例以释放资源
             if (chartInstance) {
                 chartInstance.destroy();
                 chartInstance = null;
             }
         }
         
-        // --- ✨ 会话时长函数 (不变) ---
+        // ✨ 新增：锁定/解锁控件函数
+        function toggleLock() {
+            isLocked = !isLocked; // 翻转状态
+
+            if (isLocked) {
+                // --- 锁定 ---
+                countOverlay.classList.add('controls-hidden');
+                controlsOverlay.classList.add('controls-hidden');
+                fullscreenButton.classList.add('controls-hidden');
+                
+                lockButton.innerText = "🔓 解锁";
+                lockButton.style.backgroundColor = '#f44336'; // 红色
+                lockButton.style.color = '#fff';
+            } else {
+                // --- 解锁 ---
+                countOverlay.classList.remove('controls-hidden');
+                controlsOverlay.classList.remove('controls-hidden');
+                fullscreenButton.classList.remove('controls-hidden');
+                
+                lockButton.innerText = "🔒 锁定";
+                lockButton.style.backgroundColor = '#4CAF50'; // 绿色
+            }
+        }
+
+        // --- 全屏切换函数 (不变) ---
+        function toggleFullScreen() {
+            if (!document.fullscreenElement && 
+                !document.mozFullScreenElement && 
+                !document.webkitFullscreenElement && 
+                !document.msFullscreenElement) {
+                // --- 进入全屏 ---
+                const elem = document.documentElement; // 整个页面
+                if (elem.requestFullscreen) {
+                    elem.requestFullscreen();
+                } else if (elem.mozRequestFullScreen) { /* Firefox */
+                    elem.mozRequestFullScreen();
+                } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                    elem.webkitRequestFullscreen();
+                } else if (elem.msRequestFullscreen) { /* IE/Edge */
+                    elem.msRequestFullscreen();
+                }
+                fullscreenButton.innerText = "退出全屏";
+            } else {
+                // --- 退出全屏 ---
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { /* Firefox */
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { /* Chrome, Safari & Opera */
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { /* IE/Edge */
+                    document.msExitFullscreen();
+                }
+                fullscreenButton.innerText = "🖥️ 全屏";
+            }
+        }
+
+        // --- 会话时长函数 (不变) ---
         function getSessionDuration() {
             if (!sessionStartTime) return "0 秒";
             const diff = new Date() - sessionStartTime;
@@ -472,7 +566,7 @@
             trackedPeople = newTrackedPeople;
             for (const person of trackedPeople) {
                 if (person.framesUnseen === 0) {
-                     drawBoundingBox(person.lastSeenBox, person.id, person.score);
+                    drawBoundingBox(person.lastSeenBox, person.id, person.score);
                 }
             }
             countDisplay.innerText = `累计人数: ${cumulativeCount}`;
@@ -486,7 +580,7 @@
             }
         }
 
-        // --- ✨ 数据记录器功能 (已更新) ---
+        // --- 数据记录器功能 (不变) ---
         function logData() {
             const currentFlow = cumulativeCount - lastLoggedCount;
             flowData.push({ 
@@ -503,7 +597,6 @@
             lastLoggedCount = 0;
             
             console.log(`数据记录器已启动，每 1 分钟记录一次。`);
-            // ✨ 始终使用基础间隔 (1 分钟)
             dataLoggerInterval = setInterval(logData, BASE_LOG_INTERVAL);
         }
 
@@ -513,18 +606,12 @@
             console.log('数据记录器已停止。');
         } 
         
-        // --- ✨ 新增：图表数据聚合函数 ---
-        // 此函数获取1分钟的原始数据，并按需聚合成更大的时间块
+        // --- 图表数据聚合函数 (不变) ---
         function aggregateData(targetIntervalMs) {
-            // e.g., "每5分钟" (300000) / "每1分钟" (60000) = 5
-            // 这意味着我们要把 5 个数据点合并成 1 个
             const aggregationFactor = targetIntervalMs / BASE_LOG_INTERVAL;
-
             if (flowData.length === 0) {
                 return { labels: [], data: [] };
             }
-            
-            // 确保 aggregationFactor 是整数, 尽管在这个应用里它总是
             if (aggregationFactor < 1) {
                  console.warn("聚合间隔小于基础间隔");
                  return { labels: [], data: [] };
@@ -539,46 +626,37 @@
                 currentFlowSum += flowData[i].flow;
                 lastTimestamp = flowData[i].timestamp;
                 
-                // (i + 1) % aggregationFactor === 0  => 例如, factor=5, 那么在 i=4 (第5个) 时触发
-                // OR 如果这是最后一个数据点 (为了推送剩余的数据)
                 if ((i + 1) % aggregationFactor === 0 || i === flowData.length - 1) {
                     aggregatedFlow.push(currentFlowSum);
                     aggregatedLabels.push(lastTimestamp.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' }));
                     currentFlowSum = 0; // 重置总和
                 }
             }
-            
             return { labels: aggregatedLabels, data: aggregatedFlow };
         }
 
         
-        // --- ✨ 新增：图表渲染函数 (替代旧的 showChartModal 逻辑) ---
+        // --- 图表渲染函数 (不变) ---
         function renderChart() {
-            // 获取HTML元素
             const chartCanvas = document.getElementById('chart-canvas');
             const noDataText = document.getElementById('chart-no-data');
             
-            // 从模态框下拉菜单获取当前值
             const selectedIntervalMs = parseInt(chartIntervalSelect.value, 10);
             const selectedIntervalText = chartIntervalSelect.options[chartIntervalSelect.selectedIndex].text;
 
-            // 更新模态框标题
             document.getElementById('chart-modal-title').innerText = `人流图表 (${selectedIntervalText})`;
 
-            // 先销毁旧实例
             if (chartInstance) {
                 chartInstance.destroy();
                 chartInstance = null;
             }
 
-            // ✨ 调用新的聚合器
             const { labels, data } = aggregateData(selectedIntervalMs);
 
-            // 检查是否有数据
             if (data.length === 0) {
                 noDataText.classList.remove('modal-hidden'); 
                 chartCanvas.classList.add('modal-hidden'); 
-                return; // 没有数据，不渲染
+                return; 
             }
 
             noDataText.classList.add('modal-hidden'); 
@@ -606,19 +684,11 @@
                         scales: {
                             y: {
                                 beginAtZero: true,
-                                title: {
-                                    display: true,
-                                    text: '新增人数'
-                                },
-                                ticks: {
-                                    stepSize: 1 
-                                }
+                                title: { display: true, text: '新增人数' },
+                                ticks: { stepSize: 1 }
                             },
                             x: {
-                                title: {
-                                    display: true,
-                                    text: '时间点 (周期结束时)'
-                                }
+                                title: { display: true, text: '时间点 (周期结束时)' }
                             }
                         }
                     }
@@ -627,21 +697,20 @@
         }
 
 
-        // --- ✨ 重置跟踪器状态的函数 (不变) ---
+        // --- 重置跟踪器状态的函数 (不变) ---
         function resetTrackerState() {
             cumulativeCount = 0;
-            nextPersonId = 1;       
-            trackedPeople = [];     
+            nextPersonId = 1; 
+            trackedPeople = []; 
             sessionStartTime = new Date(); 
             countDisplay.innerText = `累计人数: ${cumulativeCount}`;
             context.clearRect(0, 0, canvas.width, canvas.height); 
             
-            // 重置数据记录器 (将使用1分钟的基础间隔)
             stopDataLogger();
             startDataLogger();
         }
 
-        // --- ✨ 启动摄像头的函数 (不变) ---
+        // --- 启动摄像头的函数 (不变) ---
         async function startCamera(facingMode) {
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
@@ -703,7 +772,7 @@
                 document.getElementById('controls-overlay').style.display = 'flex';
                 
                 sessionStartTime = new Date(); 
-                startDataLogger(); // ✨ 启动数据记录器 (将使用1分钟的基础间隔)
+                startDataLogger(); 
                 runDetection(); 
                 
             } catch (error) {
@@ -745,7 +814,7 @@
             
             try {
                 const newFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-                await startCamera(newFacingMode); // ✨ 修复了拼写错误 (newFacingBode -> newFacingMode)
+                await startCamera(newFacingMode); // ✨ 修复了截断错误
                 
                 resetTrackerState(); 
                 
@@ -777,6 +846,12 @@
         chartIntervalSelect.addEventListener('change', () => {
             renderChart(); // ✨ 重新渲染图表
         });
+
+        // ✨ 新增：监听全屏按钮
+        fullscreenButton.addEventListener('click', toggleFullScreen);
+        
+        // ✨ 新增：监听锁定按钮
+        lockButton.addEventListener('click', toggleLock);
 
         // 旋转处理 (不变)
         const resizeObserver = new ResizeObserver(() => {
