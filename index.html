@@ -36,29 +36,31 @@
         /* 关键：视频和画布也填满容器 */
         video, canvas {
             position: absolute;
-            top: 0;
-            left: 0;
+            top: 50%; /* ✨ 改为50%用于旋转定位 */
+            left: 50%; /* ✨ 改为50%用于旋转定位 */
             width: 100%;
             height: 100%;
+            /* ✨ 新增：确保旋转和缩放正确应用 */
+            transform-origin: center center;
+            /* ✨ 组合 transform 和 尺寸 变化 */
+            transform: translate(-50%, -50%); 
+            transition: transform 0.3s ease, width 0.3s ease, height 0.3s ease;
         }
 
         video {
             z-index: 1;
-            /* 适配前置摄像头镜像 */
-            transform: scaleX(1); 
         }
         
         /* 关键：为前置摄像头镜像翻转画布 */
         canvas.mirrored {
-            transform: scaleX(-1);
+             /* ✨ 注意：旋转会覆盖这个，我们在JS中处理 */
+            transform: translate(-50%, -50%) scaleX(-1);
         }
 
         canvas {
             z-index: 2;
             background-color: transparent;
         }
-
-        /* --- ✨ 布局改动 --- */
 
         /* 关键：左上角的人数统计框 */
         #count-overlay {
@@ -71,7 +73,7 @@
             padding: 5px 10px;
             border-radius: 5px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.5);
-            transition: opacity 0.3s ease; /* ✨ 增加过渡效果 */
+            transition: opacity 0.3s ease; /* ✨ 保持过渡效果 */
         }
 
         /* 小方框内的元素样式 */
@@ -88,19 +90,6 @@
             display: none; /* 默认隐藏，加载后显示 */
         }
 
-        /* 关键：右下角的按钮控制框 */
-        #controls-overlay {
-            position: absolute;
-            bottom: 20px;
-            right: 15px;
-            z-index: 10;
-            display: flex;
-            flex-direction: row; /* 水平排列 */
-            gap: 10px; /* 按钮间距 */
-            align-items: center; /* ✨ 垂直居中对齐 */
-            transition: opacity 0.3s ease; /* ✨ 增加过渡效果 */
-        }
-
         /* 按钮通用样式 */
         .info-button {
             padding: 8px 12px; 
@@ -110,8 +99,42 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
-            transition: background-color 0.3s, opacity 0.3s ease; /* ✨ 增加过渡效果 */
+            transition: background-color 0.3s, opacity 0.3s ease, display 0.3s ease;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            white-space: nowrap; /* 避免按钮文字换行 */
+        }
+
+        /* --- ✨ 移除: #top-left-buttons 样式 --- */
+        /* #top-left-buttons { ... } 已删除 */
+
+        /* --- ✨ 新增: 右上角按钮容器 --- */
+        #top-right-buttons {
+            position: absolute;
+            top: 15px; 
+            right: 15px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column; /* 垂直堆叠 */
+            gap: 10px;
+            align-items: flex-end; /* 按钮靠右 */
+        }
+
+        /* --- ✨ 修改：底部控制栏 (现在是右下角) --- */
+        #controls-panel {
+            position: absolute;
+            bottom: 20px;
+            right: 15px; /* ✨ 改为右侧 */
+            /* transform: translateX(-50%); */ /* ✨ 移除 */
+            z-index: 10;
+            display: flex;
+            flex-wrap: wrap; 
+            justify-content: flex-end; /* ✨ 改为右对齐 */
+            gap: 10px;
+            background-color: rgba(0, 0, 0, 0.5);
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            transition: background-color 0.3s ease;
         }
 
         /* "生成图表" 按钮样式 */
@@ -130,6 +153,14 @@
             background-color: #7B1FA2;
         }
 
+        /* ✨ 旋转按钮样式 */
+        #rotateButton {
+            background-color: #FF9800; /* 橙色 */
+        }
+        #rotateButton:hover {
+            background-color: #E68900;
+        }
+
         /* 重置按钮样式 */
         #resetButton {
             background-color: #007bff; /* 蓝色 */
@@ -138,10 +169,23 @@
             background-color: #0056b3;
         }
         
-        
-        /* --- ✨ 模态框 (Modal) 样式修改 --- */
-        
-        /* 模态框遮罩层 */
+        /* 全屏按钮样式 */
+        #fullscreenButton {
+            background-color: #607D8B; /* 灰色 */
+        }
+        #fullscreenButton:hover {
+            background-color: #455A64;
+        }
+
+        /* 锁定按钮样式 */
+        #lockButton {
+            background-color: #4CAF50; /* 绿色 */
+        }
+        #lockButton:hover {
+            background-color: #45a049;
+        }
+
+        /* --- 模态框 (Modal) 样式 (无变化) --- */
         #modal-overlay {
             position: fixed;
             top: 0;
@@ -151,31 +195,24 @@
             background-color: rgba(0, 0, 0, 0.7);
             z-index: 90;
         }
-
-        /* 模态框本体 */
         #gemini-modal {
             position: fixed;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             z-index: 100;
-            
             background-color: #fff;
             color: #333;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            width: 90%; /* 适配手机宽度 */
+            width: 90%; 
             max-width: 500px;
         }
-        
-        /* ✨ 模态框标题 (已添加ID) */
         #gemini-modal h3 {
             margin-top: 0;
             color: #007bff;
         }
-
-        /* ✨ 新增：模态框内部的控制栏 */
         #chart-controls {
             margin-bottom: 15px;
             display: flex;
@@ -194,16 +231,12 @@
             border-radius: 5px;
             background-color: #f9f9f9;
         }
-        
-        /* ✨ 新增图表容器样式 */
         #chart-container {
             width: 100%;
-            max-height: 400px; /* 限制图表最大高度 */
-            position: relative; /* ✨ 设为相对定位，用于内部元素定位 */
-            min-height: 100px; /* ✨ 避免无数据时高度坍塌 */
+            max-height: 400px; 
+            position: relative;
+            min-height: 100px; 
         }
-        
-        /* ✨ 新增：无数据时的提示文本 */
         #chart-no-data {
             position: absolute;
             top: 50%;
@@ -214,12 +247,9 @@
             text-align: center;
             width: 100%;
         }
-
-        /* ✨ 当画布显示时，隐藏无数据提示 */
         canvas:not(.modal-hidden) + #chart-no-data {
             display: none;
         }
-
         #close-modal-button {
             margin-top: 15px;
             padding: 8px 15px;
@@ -231,44 +261,8 @@
             cursor: pointer;
             float: right; /* 按钮靠右 */
         }
-        
         .modal-hidden {
             display: none;
-        }
-        /* --- 结束：模态框样式 --- */
-
-        /* ✨ 新增：右上角控制容器 */
-        #top-right-controls {
-            position: absolute;
-            top: 15px;
-            right: 15px;
-            z-index: 10;
-            display: flex;
-            flex-direction: column; /* 垂直排列 */
-            gap: 10px; /* 按钮间距 */
-            align-items: flex-end; /* 右对齐 */
-        }
-
-        /* ✨ 修改：全屏按钮样式 (移除定位) */
-        #fullscreenButton {
-            background-color: #607D8B; /* 灰色 */
-        }
-        #fullscreenButton:hover {
-            background-color: #455A64;
-        }
-
-        /* ✨ 新增：锁定按钮样式 */
-        #lockButton {
-            background-color: #4CAF50; /* 绿色 */
-        }
-        #lockButton:hover {
-            background-color: #45a049;
-        }
-        
-        /* ✨ 新增：用于隐藏控件的类 */
-        .controls-hidden {
-            opacity: 0;
-            pointer-events: none; /* 隐藏时不可点击 */
         }
 
     </style>
@@ -287,17 +281,18 @@
         <h2 id="count">累计人数: 0</h2>
     </div>
 
-    <!-- 关键：右下角控制框 -->
-    <div id="controls-overlay">
-        <button id="reportButton" class="info-button">✨生成图表</button>
-        <button id="flipButton" class="info-button">🔄翻转镜头</button>
-        <button id="resetButton" class="info-button">🆕重置计数</button>
+    <!-- ✨ 新增：右上角按钮 -->
+    <div id="top-right-buttons">
+        <button id="flipButton" class="info-button">🔄 翻转镜头</button>
+        <button id="rotateButton" class="info-button">🔃 旋转</button>
+        <button id="fullscreenButton" class="info-button">🖥️ 全屏</button>
+        <button id="lockButton" class="info-button">🔒 锁定</button>
     </div>
 
-    <!-- ✨ 新增：右上角控制框 (包含全屏和锁定) -->
-    <div id="top-right-controls">
-        <button id="fullscreenButton" class="info-button">🖥️全屏</button>
-        <button id="lockButton" class="info-button">🔒锁定</button>
+    <!-- ✨ 修改：底部中央控制栏 -->
+    <div id="controls-panel">
+        <button id="reportButton" class="info-button">✨ 生成图表</button>
+        <button id="resetButton" class="info-button">重置计数</button>
     </div>
 
     <!-- ✨ 模态框 (Modal) -->
@@ -328,10 +323,6 @@
         const context = canvas.getContext('2d');
         const countDisplay = document.getElementById('count');
         const loadingMessage = document.getElementById('loading-message');
-        const resetButton = document.getElementById('resetButton'); 
-
-        // 按钮
-        const reportButton = document.getElementById('reportButton');
         
         // Modal 元素
         const modalOverlay = document.getElementById('modal-overlay');
@@ -339,16 +330,17 @@
         const closeModalButton = document.getElementById('close-modal-button');
         const chartIntervalSelect = document.getElementById('chartIntervalSelect');
         
-        // 翻转按钮
+        // ✨ 控制栏和所有按钮 (按新布局)
+        const controlsPanel = document.getElementById('controls-panel'); // 底部
+        const topRightButtons = document.getElementById('top-right-buttons'); // ✨ 新增
+        
+        const reportButton = document.getElementById('reportButton');
+        const resetButton = document.getElementById('resetButton'); 
+        
         const flipButton = document.getElementById('flipButton');
-        
-        // 全屏按钮
+        const rotateButton = document.getElementById('rotateButton');
         const fullscreenButton = document.getElementById('fullscreenButton');
-        
-        // ✨ 新增：锁定按钮和需要隐藏的元素
         const lockButton = document.getElementById('lockButton');
-        const countOverlay = document.getElementById('count-overlay');
-        const controlsOverlay = document.getElementById('controls-overlay');
 
         let model = null; 
         let detectionTimeoutId = null; 
@@ -364,6 +356,10 @@
         let currentFacingMode = 'environment'; // 默认使用后置
         let currentStream = null; // 存储当前的视频流
 
+        // --- ✨ 旋转和锁定状态 ---
+        let currentRotation = 0; // 0, 90, 180, 270
+        let isLocked = false;
+
         const RELATIVE_MATCH_THRESHOLD = 0.8; 
         const MAX_FRAMES_UNSEEN = 100; // 100 帧 (10 秒)
         
@@ -374,9 +370,6 @@
         let dataLoggerInterval = null;
         let chartInstance = null; // 存储 Chart.js 实例
         
-        // ✨ 新增：锁定状态
-        let isLocked = false;
-
         // --- Modal 控制函数 (不变) ---
         function showModal() {
             modalOverlay.classList.remove('modal-hidden');
@@ -392,62 +385,103 @@
             }
         }
         
-        // ✨ 新增：锁定/解锁控件函数
+        // --- ✨ 更新：锁定/解锁控件函数 (按新布局) ---
         function toggleLock() {
             isLocked = !isLocked; // 翻转状态
+            
+            // ✨ 定义所有需要隐藏/显示的按钮
+            const buttonsToToggle = [
+                // 底部按钮
+                reportButton,
+                resetButton,
+                // 右上角按钮 (除了锁定)
+                flipButton,
+                rotateButton,
+                fullscreenButton
+            ];
+
+            buttonsToToggle.forEach(button => {
+                button.style.display = isLocked ? 'none' : 'inline-block';
+            });
 
             if (isLocked) {
                 // --- 锁定 ---
-                countOverlay.classList.add('controls-hidden');
-                controlsOverlay.classList.add('controls-hidden');
-                fullscreenButton.classList.add('controls-hidden');
-                
                 lockButton.innerText = "🔓 解锁";
                 lockButton.style.backgroundColor = '#f44336'; // 红色
-                lockButton.style.color = '#fff';
+                
+                // ✨ 只隐藏底部面板的背景
+                controlsPanel.style.backgroundColor = 'transparent';
+                controlsPanel.style.boxShadow = 'none';
+                
             } else {
                 // --- 解锁 ---
-                countOverlay.classList.remove('controls-hidden');
-                controlsOverlay.classList.remove('controls-hidden');
-                fullscreenButton.classList.remove('controls-hidden');
-                
                 lockButton.innerText = "🔒 锁定";
                 lockButton.style.backgroundColor = '#4CAF50'; // 绿色
+                
+                // ✨ 恢复底部面板的背景
+                controlsPanel.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+                controlsPanel.style.boxShadow = '0 2px 8px rgba(0,0,0,0.5)';
             }
         }
 
         // --- 全屏切换函数 (不变) ---
         function toggleFullScreen() {
-            if (!document.fullscreenElement && 
-                !document.mozFullScreenElement && 
-                !document.webkitFullscreenElement && 
-                !document.msFullscreenElement) {
-                // --- 进入全屏 ---
-                const elem = document.documentElement; // 整个页面
+            if (!document.fullscreenElement) {
+                const elem = document.documentElement; 
                 if (elem.requestFullscreen) {
                     elem.requestFullscreen();
-                } else if (elem.mozRequestFullScreen) { /* Firefox */
-                    elem.mozRequestFullScreen();
-                } else if (elem.webkitRequestFullscreen) { /* Chrome, Safari & Opera */
+                } else if (elem.webkitRequestFullscreen) { 
                     elem.webkitRequestFullscreen();
-                } else if (elem.msRequestFullscreen) { /* IE/Edge */
-                    elem.msRequestFullscreen();
                 }
                 fullscreenButton.innerText = "退出全屏";
             } else {
-                // --- 退出全屏 ---
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) { /* Firefox */
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) { /* Chrome, Safari & Opera */
+                } else if (document.webkitExitFullscreen) { 
                     document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { /* IE/Edge */
-                    document.msExitFullscreen();
                 }
                 fullscreenButton.innerText = "🖥️ 全屏";
             }
         }
+
+        // --- 旋转函数 (不变) ---
+        function toggleRotation() {
+            currentRotation = (currentRotation + 90) % 360;
+
+            if (currentRotation === 90 || currentRotation === 270) {
+                video.style.width = '100vh';
+                video.style.height = '100vw';
+                canvas.style.width = '100vh';
+                canvas.style.height = '100vw';
+            } else {
+                video.style.width = '100%';
+                video.style.height = '100%';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
+            }
+            applyTransforms();
+        }
+        
+        // --- 应用变换的辅助函数 (不变) ---
+        function applyTransforms() {
+            let videoTransform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
+            let canvasTransform = `translate(-50%, -50%) rotate(${currentRotation}deg)`;
+
+            if (currentFacingMode === 'user') {
+                videoTransform += " scaleX(-1)";
+                canvasTransform += " scaleX(-1)"; 
+            }
+            
+            video.style.transform = videoTransform;
+            canvas.style.transform = canvasTransform;
+
+            if (currentFacingMode === 'user') {
+                canvas.classList.add("mirrored"); 
+            } else {
+                canvas.classList.remove("mirrored");
+            }
+        }
+
 
         // --- 会话时长函数 (不变) ---
         function getSessionDuration() {
@@ -489,7 +523,7 @@
             const textY = y > 16 ? y - 5 : 16;
             
             context.save(); 
-            if (currentFacingMode === 'user') {
+            if (canvas.classList.contains("mirrored")) {
                 const textWidth = context.measureText(label).width;
                 context.translate(textX + (textWidth / 2), textY);
                 context.scale(-1, 1);
@@ -727,13 +761,19 @@
                 audio: false 
             };
             
-            if (currentFacingMode === 'user') {
-                video.style.transform = "scaleX(-1)";
-                canvas.classList.add("mirrored");
+            if (currentRotation === 90 || currentRotation === 270) {
+                video.style.width = '100vh';
+                video.style.height = '100vw';
+                canvas.style.width = '100vh';
+                canvas.style.height = '100vw';
             } else {
-                video.style.transform = "scaleX(1)";
-                canvas.classList.remove("mirrored");
+                video.style.width = '100%';
+                video.style.height = '100%';
+                canvas.style.width = '100%';
+                canvas.style.height = '100%';
             }
+            applyTransforms();
+
             try {
                 const stream = await navigator.mediaDevices.getUserMedia(constraints);
                 currentStream = stream; 
@@ -742,6 +782,7 @@
                     video.onloadedmetadata = () => {
                         canvas.width = video.videoWidth;
                         canvas.height = video.videoHeight;
+                        
                         console.log(`摄像头已启动 (${currentFacingMode}): ${video.videoWidth}x${video.videoHeight}`);
                         resolve(true);
                     };
@@ -757,7 +798,7 @@
             }
         }
 
-        // --- 主启动函数 (不变) ---
+        // --- ✨ 更新：主启动函数 (按新布局) ---
         async function main() {
             try {
                 console.log('正在加载模型...');
@@ -769,7 +810,8 @@
                 
                 loadingMessage.style.display = 'none'; 
                 countDisplay.style.display = 'block'; 
-                document.getElementById('controls-overlay').style.display = 'flex';
+                controlsPanel.style.display = 'flex'; // ✨ 显示底部
+                topRightButtons.style.display = 'flex'; // ✨ 显示右上
                 
                 sessionStartTime = new Date(); 
                 startDataLogger(); 
@@ -810,53 +852,56 @@
             loadingMessage.innerText = '正在翻转镜头...';
             loadingMessage.style.display = 'block';
             countDisplay.style.display = 'none';
-            document.getElementById('controls-overlay').style.display = 'none';
+            controlsPanel.style.display = 'none';
+            topRightButtons.style.display = 'none'; // ✨ 隐藏
             
             try {
                 const newFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-                await startCamera(newFacingMode); // ✨ 修复了截断错误
+                await startCamera(newFacingMode); 
                 
                 resetTrackerState(); 
                 
                 loadingMessage.style.display = 'none';
                 countDisplay.style.display = 'block';
-                document.getElementById('controls-overlay').style.display = 'flex';
-
+                controlsPanel.style.display = 'flex';
+                topRightButtons.style.display = 'flex'; // ✨ 恢复显示
+                
                 runDetection(); 
                 
             } catch (error) {
                 console.error('翻转摄像头失败:', error);
                 loadingMessage.innerText = `翻转失败: ${error.message}`;
-                document.getElementById('controls-overlay').style.display = 'flex';
+                controlsPanel.style.display = 'flex';
+                topRightButtons.style.display = 'flex'; // ✨ 恢复显示
             }
         });
 
         // "生成图表" 按钮
         reportButton.addEventListener('click', () => {
-            showModal(); // 弹出空白模态框
-            
-            // ✨ 设置默认选项为 5 分钟
-            chartIntervalSelect.value = "300000"; // 5 minutes
-            
-            // ✨ 渲染默认图表
+            showModal();
+            chartIntervalSelect.value = "300000"; // 默认5分钟
             renderChart(); 
         });
 
-        // ✨ 新增：监听模态框内部下拉菜单的变化
+        // 模态框内部下拉菜单
         chartIntervalSelect.addEventListener('change', () => {
-            renderChart(); // ✨ 重新渲染图表
+            renderChart(); 
         });
 
-        // ✨ 新增：监听全屏按钮
+        // 全屏按钮
         fullscreenButton.addEventListener('click', toggleFullScreen);
         
-        // ✨ 新增：监听锁定按钮
+        // 锁定按钮
         lockButton.addEventListener('click', toggleLock);
+
+        // 旋转按钮
+        rotateButton.addEventListener('click', toggleRotation);
 
         // 旋转处理 (不变)
         const resizeObserver = new ResizeObserver(() => {
             if (video.videoWidth > 0 && 
                 (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
+                
                 console.log(`检测到旋转/调整大小。重设画布分辨率为: ${video.videoWidth}x${video.videoHeight}`);
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
