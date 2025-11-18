@@ -415,7 +415,7 @@
                 
             } else {
                 // --- 解锁 ---
-                lockButton.innerText = "🔒 锁定";
+                lockButton.innerText = "🔒锁定屏幕";
                 lockButton.style.backgroundColor = '#4CAF50'; // 绿色
                 
                 // ✨ 恢复底部面板的背景
@@ -433,14 +433,14 @@
                 } else if (elem.webkitRequestFullscreen) { 
                     elem.webkitRequestFullscreen();
                 }
-                fullscreenButton.innerText = "退出全屏";
+                fullscreenButton.innerText = "↩️退出全屏";
             } else {
                 if (document.exitFullscreen) {
                     document.exitFullscreen();
                 } else if (document.webkitExitFullscreen) { 
                     document.webkitExitFullscreen();
                 }
-                fullscreenButton.innerText = "🖥️ 全屏";
+                fullscreenButton.innerText = "🖥️全屏显示";
             }
         }
 
