@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <!-- 关键：设置视口以支持移动设备和旋转 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>人流量检测 (✨ AI版)</title>
+    <title>🧮 人流量检测 (✨AI版)</title>
     <link rel="icon" href="favicon.png" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
@@ -38,8 +38,10 @@
             position: absolute;
             top: 50%; /* ✨ 改为50%用于旋转定位 */
             left: 50%; /* ✨ 改为50%用于旋转定位 */
-            width: 100%;
-            height: 100%;
+            /* ✨ 移除固定的 width/height，将由JS控制 */
+            /* width: 100%; */
+            /* height: 100%; */
+            
             /* ✨ 新增：确保旋转和缩放正确应用 */
             transform-origin: center center;
             /* ✨ 组合 transform 和 尺寸 变化 */
@@ -283,16 +285,16 @@
 
     <!-- ✨ 新增：右上角按钮 -->
     <div id="top-right-buttons">
-        <button id="flipButton" class="info-button">🔄 翻转镜头</button>
-        <button id="rotateButton" class="info-button">🔃 旋转</button>
-        <button id="fullscreenButton" class="info-button">🖥️ 全屏</button>
-        <button id="lockButton" class="info-button">🔒 锁定</button>
+        <button id="flipButton" class="info-button">🔄翻转镜头</button>
+        <button id="rotateButton" class="info-button">🔃旋转视频</button>
+        <button id="fullscreenButton" class="info-button">🖥️全屏显示</button>
+        <button id="lockButton" class="info-button">🔒锁定屏幕</button>
     </div>
 
     <!-- ✨ 修改：底部中央控制栏 -->
     <div id="controls-panel">
-        <button id="reportButton" class="info-button">✨ 生成图表</button>
-        <button id="resetButton" class="info-button">重置计数</button>
+        <button id="reportButton" class="info-button">✨生成图表</button>
+        <button id="resetButton" class="info-button">🆕重置计数</button>
     </div>
 
     <!-- ✨ 模态框 (Modal) -->
@@ -424,41 +426,54 @@
             }
         }
 
-        // --- 全屏切换函数 (不变) ---
-        function toggleFullScreen() {
-            if (!document.fullscreenElement) {
-                const elem = document.documentElement; 
-                if (elem.requestFullscreen) {
-                    elem.requestFullscreen();
-                } else if (elem.webkitRequestFullscreen) { 
-                    elem.webkitRequestFullscreen();
+        // --- ✨ 新增：设置元素5:3纵横比的函数 ---
+        function setElementSizes() {
+            const vw = document.documentElement.clientWidth;
+            const vh = document.documentElement.clientHeight;
+            let w, h; // 这将是元素的 CSS 宽度/高度
+            
+            if (currentRotation === 0 || currentRotation === 180) {
+                // 横向模式，目标比例 5:3
+                const targetRatio = 5 / 3;
+                if (vw / vh > targetRatio) {
+                    // 视口比 5:3 更宽 (例如 16:9)
+                    // 以高度为准 (上下填满)
+                    h = vh + 'px';
+                    w = (vh * targetRatio) + 'px';
+                } else {
+                    // 视口比 5:3 更高 (例如 4:3)
+                    // 以宽度为准 (左右填满)
+                    w = vw + 'px';
+                    h = (vw / targetRatio) + 'px';
                 }
-                fullscreenButton.innerText = "退出全屏";
             } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.webkitExitFullscreen) { 
-                    document.webkitExitFullscreen();
+                // 纵向模式 (旋转90/270度)，目标比例 3:5
+                const targetRatio = 3 / 5;
+                if (vw / vh > targetRatio) {
+                    // 视口比 3:5 更宽 (例如 16:9, 4:3)
+                    // 以高度为准 (上下填满)
+                    h = vh + 'px';
+                    w = (vh * targetRatio) + 'px';
+                } else {
+                    // 视口比 3:5 更高 (例如 9:16)
+                    // 以宽度为准 (左右填满)
+                    w = vw + 'px';
+                    h = (vw / targetRatio) + 'px';
                 }
-                fullscreenButton.innerText = "🖥️ 全屏";
             }
+
+            video.style.width = w;
+            video.style.height = h;
+            canvas.style.width = w;
+            canvas.style.height = h;
         }
 
-        // --- 旋转函数 (不变) ---
+        // --- 旋转函数 (修改) ---
         function toggleRotation() {
             currentRotation = (currentRotation + 90) % 360;
 
-            if (currentRotation === 90 || currentRotation === 270) {
-                video.style.width = '100vh';
-                video.style.height = '100vw';
-                canvas.style.width = '100vh';
-                canvas.style.height = '100vw';
-            } else {
-                video.style.width = '100%';
-                video.style.height = '100%';
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-            }
+            // ✨ 使用新函数设置大小
+            setElementSizes();
             applyTransforms();
         }
         
@@ -744,7 +759,7 @@
             startDataLogger();
         }
 
-        // --- 启动摄像头的函数 (不变) ---
+        // --- 启动摄像头的函数 (修改) ---
         async function startCamera(facingMode) {
             if (currentStream) {
                 currentStream.getTracks().forEach(track => track.stop());
@@ -761,17 +776,8 @@
                 audio: false 
             };
             
-            if (currentRotation === 90 || currentRotation === 270) {
-                video.style.width = '100vh';
-                video.style.height = '100vw';
-                canvas.style.width = '100vh';
-                canvas.style.height = '100vw';
-            } else {
-                video.style.width = '100%';
-                video.style.height = '100%';
-                canvas.style.width = '100%';
-                canvas.style.height = '100%';
-            }
+            // ✨ 使用新函数设置大小
+            setElementSizes();
             applyTransforms();
 
             try {
@@ -808,6 +814,9 @@
 
                 await startCamera(currentFacingMode); 
                 
+                // ✨ 启动时额外调用一次以设置初始大小
+                setElementSizes();
+
                 loadingMessage.style.display = 'none'; 
                 countDisplay.style.display = 'block'; 
                 controlsPanel.style.display = 'flex'; // ✨ 显示底部
@@ -895,19 +904,23 @@
         lockButton.addEventListener('click', toggleLock);
 
         // 旋转按钮
-        rotateButton.addEventListener('click', toggleRotation);
+    rotateButton.addEventListener('click', toggleRotation);
 
-        // 旋转处理 (不变)
-        const resizeObserver = new ResizeObserver(() => {
-            if (video.videoWidth > 0 && 
-                (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
-                
-                console.log(`检测到旋转/调整大小。重设画布分辨率为: ${video.videoWidth}x${video.videoHeight}`);
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-            }
-        });
-        resizeObserver.observe(video);
+    // 旋转处理 (不变)
+    const resizeObserver = new ResizeObserver(() => {
+        if (video.videoWidth > 0 && 
+            (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight)) {
+            
+            console.log(`检测到旋转/调整大小。重设画布分辨率为: ${video.videoWidth}x${video.videoHeight}`);
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+    });
+    resizeObserver.observe(video);
+
+    // ✨ 新增：窗口大小调整处理
+    window.addEventListener('resize', setElementSizes);
+    
     </script>
 </body>
 </html>
