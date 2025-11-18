@@ -207,7 +207,7 @@
             border-radius: 8px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
             width: 90%; 
-            max-width: 800px; /* 假设您已采用上一个回答的宽度修改 */
+            max-width: 700px; /* 假设您已采用上一个回答的宽度修改 */
     
     /* ✨ 新增或修改：设置模态框的最大高度 */
             max-height: 90vh; /* 模态框最大占据屏幕高度的 90% */
@@ -303,10 +303,8 @@
     <div id="modal-overlay" class="modal-hidden"></div>
     <div id="gemini-modal" class="modal-hidden">
         <h3 id="chart-modal-title">人流图表</h3>
-        <p id="chart-notes" class="text-gray-500 text-[10px] mt-2">
-        注: 1. 系统设置为10分钟内重复出现的人不计入总数，可避免误差。
-         2. 另外，场所单个出入口超过10分钟的人流，在出入时会被分别计数，故实际最后人数可能需要÷2.
-        </p>
+        <p id="chart-notes" class="text-gray-500 text-[10px] mt-2">注: 1. 系统设置为10分钟内重复出现的人不计入总数，可避免误差。</p>
+        <p id="chart-notes" class="text-gray-500 text-[10px] mt-2">    2. 另外，场所单个出入口超过10分钟的人流，在出入时会被分别计数，故实际最后人数可能需要÷2。</p>
             <div id="chart-controls">
             <label for="chartIntervalSelect">选择间隔:</label>
             <select id="chartIntervalSelect">
